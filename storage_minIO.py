@@ -1,21 +1,20 @@
-import minio
 from minio import Minio
-from minio.error import ResponseError
-#from minio.copyconditions import CopySource
+from minio.commonconfig import REPLACE, CopySource
+from minio.error import S3Error
 from requests.exceptions import ConnectionError
 
 from retry import retry
 
 class Storage():
     def __init__(self, host, access_key, secret_key):
-        self.client = Minio(host, access_key=access_key, secret_key=secret_key, secure=False)
+        self.client = Minio(host, access_key, secret_key, secure=False)
 
     @retry(exceptions=(ConnectionError))
     def bucket_exist(self, bucket_name):
         try:
             return self.client.bucket_exists(bucket_name)
 
-        except ResponseError as exception:
+        except S3Error as exception:
             print('storage exception:\n\t{}\n\t{}'.format(exception, bucket_name))
             return False
         
@@ -24,7 +23,7 @@ class Storage():
         try:
             return self.client.stat_object(bucket_name, file_path)
 
-        except ResponseError as exception:
+        except S3Error as exception:
             print('storage exception:\n\t{}\n\t{}'.format(exception, file_path))
             return False
         
@@ -58,8 +57,8 @@ class Storage():
         return self.client.copy_object(bucket_name, file_name, CopySource(new_bucket_name, new_file_name))
     
     @retry(exceptions=(ConnectionError))
-    def put_file(self, bucket_name, file_name, file_data):
-        return self.client.put_object(bucket_name, file_name, file_data)
+    def put_file(self, bucket_name, file_name, file_data, length=-1):
+        return self.client.put_object(bucket_name, file_name, data=file_data, length=length)
     
     @retry(exceptions=(ConnectionError))
     def delete(self, bucket_name, file_name):
