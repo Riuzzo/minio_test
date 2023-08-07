@@ -1,5 +1,5 @@
 from minio import Minio
-from minio.commonconfig import REPLACE, CopySource
+from minio.commonconfig import REPLACE, CopySource, SnowballObject
 from minio.error import S3Error
 from requests.exceptions import ConnectionError
 
@@ -53,6 +53,10 @@ class Storage():
         return self.client.make_bucket(bucket_name)
     
     @retry(exceptions=(ConnectionError))
+    def delete_bucket(self, bucket_name):
+        return self.client.remove_bucket(bucket_name)
+    
+    @retry(exceptions=(ConnectionError))
     def copy(self, bucket_name, file_name, new_bucket_name, new_file_name):
         return self.client.copy_object(bucket_name, file_name, CopySource(new_bucket_name, new_file_name))
     
@@ -61,5 +65,21 @@ class Storage():
         return self.client.put_object(bucket_name, file_name, data=file_data, length=length)
     
     @retry(exceptions=(ConnectionError))
+    def put_file_from_path(self, bucket_name, file_name, file_path):
+        return self.client.fput_object(bucket_name, file_name, file_path)
+    
+    @retry(exceptions=(ConnectionError))
     def delete(self, bucket_name, file_name):
         return self.client.remove_object(bucket_name, file_name)
+    
+    @retry(exceptions=(ConnectionError))
+    def snowball_upload(self, bucket_name, objects):
+        snowballObjects = self.converter(objects)
+        return self.client.upload_snowball_objects(bucket_name, snowballObjects)
+
+    def converter(self, objects):
+        snowballObjects = []
+        for obj in objects:
+            snowballObj = SnowballObject(obj['name'], filename=obj['path'])
+            snowballObjects.append(snowballObj)
+        return snowballObjects

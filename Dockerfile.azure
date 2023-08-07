@@ -1,0 +1,10 @@
+FROM minio/minio:latest
+
+EXPOSE 9000
+EXPOSE 9090
+
+ENV MINIO_ROOT_USER=minioadmin
+ENV MINIO_ROOT_PASSWORD=minioadmin
+
+ENTRYPOINT ["minio"]
+CMD ["server", "--console-address", ":9090", "/data"]
